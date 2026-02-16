@@ -1,11 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
+import pytz
 from typing import Optional, Dict
 from sqlalchemy.orm import Session
 from app.database.models import Student, Session as SessionModel, AttendanceRecord, SystemLog
 
 
 class AttendanceEngine:
-  def __inti__(self, db: Session):
+  def __init__(self, db: Session):
     self.db = db
     self.current_session_id = None
 
@@ -47,16 +48,17 @@ class AttendanceEngine:
     ).first()
 
     if existing:
+      local_time = existing.marked_at.replace(tzinfo=timezone.utc).astimezone()
       return {
         "success": False,
         "error": "DUPLICATE",
-        "message": f"Already marked at {existing.marked_at.strftime('%I:%M %p')}"
+        "message": f"Already marked at {local_time.strftime('%I:%M %p')}"
       }
     
     #mark attendance
     record = AttendanceRecord(
       student_id=student.id,
-      Session_id=self.current_session_id,
+      session_id=self.current_session_id,
       marked_at=datetime.utcnow(),
       confidence_score=confidence,
       status="present"
