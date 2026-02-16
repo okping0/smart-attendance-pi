@@ -20,14 +20,15 @@ class Session(Base):
   __tablename__ = "sessions"
 
   id = Column(Integer, primary_key=True, index=True)
-  Session_name = Column(String(100), nullable=False)
+  session_name = Column(String(100), nullable=False)
   class_name = Column(String(50))
   started_at = Column(DateTime, default=datetime.utcnow)
   ended_at = Column(DateTime, nullable=True)
   total_students = Column(Integer, default=80)
   present_count = Column(Integer, default=0)
+  is_active = Column(Boolean)
 
-  attendace_records = relationship("AttendanceRecords", back_populates="session")
+  attendance_records = relationship("AttendanceRecord", back_populates="session")
 
 class AttendanceRecord(Base):
   __tablename__ = "attendance_records"
@@ -42,7 +43,7 @@ class AttendanceRecord(Base):
   status = Column(String(20), default="absent")
   notes = Column(Text, nullable=True)
 
-  student = relationship("Student", back_populates="attendace_records")
+  student = relationship("Student", back_populates="attendance_records")
   session = relationship("Session", back_populates="attendance_records")
 
 class SystemLog(Base):
@@ -54,7 +55,6 @@ class SystemLog(Base):
   component = Column(String(20))
   message = Column(Text)
   student_id = Column(String(20), nullable=True)
-  session_id = Column(Integer, nullable=True)
   session_id = Column(Integer, nullable=True)
   extra_data = Column(JSON, nullable=True)
 

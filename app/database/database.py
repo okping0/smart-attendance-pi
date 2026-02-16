@@ -25,7 +25,7 @@ def get_db():
     db.close()
 
 def create_all_tables():
-  from database.models import Base
+  from app.database.models import Base
   print("Creating database tables...")
   Base.metadata.create_all(bind=engine)
   print("All tables created")
