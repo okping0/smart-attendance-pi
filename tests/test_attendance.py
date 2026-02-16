@@ -1,3 +1,4 @@
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -6,10 +7,12 @@ import cv2
 from app.core.face_recognition import FaceRecognitionEngine
 from app.core.attendance_engine import AttendanceEngine
 from app.database.database import sessionLocal
+from app.core.liveness_detection import LivenessDetector
 
 # Initialize
 db = sessionLocal()
 face_engine = FaceRecognitionEngine()
+liveness = LivenessDetector()
 face_engine.load_model()
 face_engine.load_student_embeddings()
 
@@ -35,19 +38,44 @@ while True:
     key = cv2.waitKey(1) & 0xFF
 
     if key == ord(' '):
+        print("\n=== starting attendance process ===")
+
+        print("1. Detecting face...")
         student_id, student_name, confidence = face_engine.recognize_face(frame)
 
-        if student_id:
-            result = attendance.mark_attendance(student_id, student_name, confidence)
+        if not student_id:
+            print(f"Face not recognized ({confidence:.2%})")
 
-            if result["success"]:
-                print(f"✅ {result['student_name']} marked present ({confidence:.2%})")
-                print(f"   Present: {result['present_count']}/{result['total']}")
-            else:
-                print(f"⚠️  {result['message']}")
+        print(f"Recognized {student_name} ({confidence:.2%})")
+
+        if attendance.check_already_marked(student_id):
+            print(f"{student_name} already marked present")
+            continue
+
+        print("2. Checking liveness - BLINK THRICE")
+        blink_passed = liveness.wait_for_blink(cap, required_blinks=3, timeout_seconds=10)
+
+        if not blink_passed:
+            print("Liveness check failed - no blink detected")
+            cv2.destroyWindow('Liveness Check')
+            continue
+        
+        cv2.destroyWindow('Liveness Check')
+        print("Liveness check passed")
+
+        print("3. Marking attendance...")
+        result = attendance.mark_attendance(student_id, student_name, confidence)
+
+        if result["success"]:
+            print(f"{result['student_name']} marked present")
+            print(f"   Present: {result['present_count']}/{result['total']}")
+
         else:
-            print(f"❌ Face not recognized ({confidence:.2%})")
+            print(f"⚠️{result['message']}")
 
+
+        print("=== process complete ==\n")
+            
     elif key == ord('q'):
         break
 

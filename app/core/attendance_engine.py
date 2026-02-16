@@ -112,3 +112,22 @@ class AttendanceEngine:
     self.current_session_id = None
     print(f"✅ Session ended - {stats['rate']}% attendance")
     return stats
+  
+  def check_already_marked(self, student_id: str) -> bool:
+    """
+    Check if student already marked in current session
+    Returns True if already marked, False otherwise
+    """
+    if not self.current_session_id:
+        return False
+    
+    student = self.db.query(Student).filter(Student.student_id == student_id).first()
+    if not student:
+        return False
+    
+    existing = self.db.query(AttendanceRecord).filter(
+        AttendanceRecord.student_id == student.id,
+        AttendanceRecord.session_id == self.current_session_id
+    ).first()
+    
+    return existing is not None
