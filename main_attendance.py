@@ -74,12 +74,19 @@ class AttendanceSystem:
     
   def run(self):
         """Main loop"""
-        # Start session
-        self.attendance.start_session(
-            session_name="test Session",
-            total_students=4,
-            class_name="test"
-        )
+        # check if already a session..if not tell to create one 
+
+        from app.database.models import Session as SessionModel
+
+        active = self.db.query(SessionModel).filter(SessionModel.is_active == True).first()
+
+        if active:
+           print(f"using existing sesson: {active.session_name} (ID:{active.id} )")
+           self.attendance.current_session_id = active.id
+
+        else:
+           print("No active session found. create one from the API first")
+           return
         
         cap = cv2.VideoCapture(0)
         print("\n--- Press SPACE to mark attendance, Q to quit ---\n")
@@ -97,20 +104,20 @@ class AttendanceSystem:
                 result = self.process_student(frame, cap)
                 
                 if result["success"]:
-                    print(f"✅ {result['student_name']} marked present!")
+                    print(f"{result['student_name']} marked present!")
                     print(f"   Count: {result['present_count']}/{result['total']}\n")
                 else:
                     stage = result["stage"]
                     if stage == "quality":
-                        print(f"❌ Quality check failed:")
+                        print(f"Quality check failed:")
                         for err in result["errors"]:
                             print(f"   - {err}")
                     elif stage == "recognition":
-                        print(f"❌ Face not recognized ({result['confidence']:.2%})")
+                        print(f"Face not recognized ({result['confidence']:.2%})")
                     elif stage == "duplicate":
-                        print(f"⚠️  {result['student_name']} already marked!")
+                        print(f" {result['student_name']} already marked!")
                     elif stage == "liveness":
-                        print(f"❌ Liveness check failed - no blink detected")
+                        print(f"Liveness check failed - no blink detected")
                     elif stage == "database":
                         print(f"❌ Database error: {result['message']}")
                     print()
