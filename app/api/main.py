@@ -41,7 +41,7 @@ def get_session_status(db: Session = Depends(get_db)):
   }
 
 
-@app.post("/session/end")
+@app.patch("/session/end")
 def end_sesion(db: Session = Depends(get_db)):
   from app.core.attendance_engine import AttendanceEngine
 
@@ -103,4 +103,81 @@ def get_attendance_list(session_id: int = None, db: Session = Depends(get_db)):
     "count": len(attendance_list),
     "attendance": attendance_list
   }
+
+@app.post("/students/enroll")
+def enroll_students(
+  student_id: str,
+  name: str,
+  email: str = None,
+  db: Session = Depends(get_db)
+):
   
+  from app.database.models import Student
+
+# check if student alreeady exist
+  existing = db.query(Student).filter(Student.student_id == student_id).first()
+  if existing:
+    return {"success": False, "message": "Student ID already exists"}
+  
+  student = Student(
+    student_id=student_id,
+    name=name,
+    email=email,
+    face_encodings=[]
+  )
+
+  db.add(student)
+  db.commit()
+
+  return {"success": True, "message": f"Student {name} enrolled", "student_id": student_id}
+
+
+
+@app.post("/attendance/mark-manual")
+def mark_manual_attendance(
+  student_id: str,
+  db: Session = Depends(get_db)
+):
+  
+  from app.core.attendance_engine import AttendanceEngine
+  from app.database.models import Student, Session as SessionModel
+
+  active = db.query(SessionModel).filter(SessionModel.is_active == True).first()
+  if not active:
+    return {"success": False, "message": "No active session"}
+  
+  student = db.query(Student).filter(Student.student_id == student_id).first()
+  if not student:
+    return {"success": False, "message": "Student not found"}
+  
+  engine = AttendanceEngine(db)
+  engine.current_session_id = active.id
+
+  result = engine.mark_attendance(student_id, student.name, confidence=1.0)
+
+  return result
+
+
+@app.get("/session/history")
+def get_session_history(limit: int = 10, db: Session = Depends(get_db)):
+  from app.database.models import Session as SessionModel
+
+  sessions = db.query(SessionModel).order_by(
+    SessionModel.started_at.desc()
+  ).limit(limit).all()
+
+  return {
+    "success": True,
+    "sessions": [
+      {
+        "id": s.id,
+        "session_name": s.session_name,
+        "started_at": s.started_at.strftime("%Y-%m-%d %H:%M"),
+        "ended_at": s.ended_at.strftime("%Y-%m-%d %H:%M") if s.ended_at else None,
+        "is_active": s.is_active,
+        "present_count": s.present_count,
+        "total_students": s.total_students
+      }
+      for s in sessions
+    ]
+  }
