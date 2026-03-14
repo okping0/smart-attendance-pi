@@ -50,7 +50,7 @@ class AttendanceSystem:
     
     # step-4 check liveness
     blink_passed = self.liveness.wait_for_blink(cap, required_blinks=3, timeout_seconds=10)
-    cv2.destroyWindow('Liveness check')
+    cv2.destroyWindow('Liveness Check')
 
     if not blink_passed:
       return {"success": False, "stage": "Liveness"}

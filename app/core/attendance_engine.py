@@ -110,7 +110,7 @@ class AttendanceEngine:
     }
 
     self.current_session_id = None
-    print(f"✅ Session ended - {stats['rate']}% attendance")
+    print(f"Session ended - {stats['rate']}% attendance")
     return stats
   
   def check_already_marked(self, student_id: str) -> bool:
