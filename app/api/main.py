@@ -1,27 +1,50 @@
 from fastapi import FastAPI,Depends
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from app.database.database import get_db
+from app.api.schemas import SessionStartRequest, StudentEnrollRequest, ManualAttendanceRequest
+import csv, io, os
 
 app = FastAPI(title="Attendance System API")
+
+static_path = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_path), name="static")
+
+@app.get("/dashboard")
+def dashboard():
+    html_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    return FileResponse(html_path)
 
 @app.get("/")
 def root():
   return {"message": "Attendance system API"}
 
+
+
+# ------- start session ------- #
+# ----------------------------- #
+
+
 @app.post("/session/start")
 def start_session(
-  session_name: str,
-  class_name: str,
-  total_students : int = 80,
+  data: SessionStartRequest,
   db: Session = Depends(get_db)
 ):
   from app.core.attendance_engine import AttendanceEngine
 
   engine = AttendanceEngine(db)
-  session_id = engine.start_session(session_name, total_students=total_students,class_name=class_name)
+  session_id = engine.start_session(data.session_name, total_students=data.total_students,class_name=data.class_name)
 
   return {"success": True, "session_id": session_id}
 
+# ---------------------------------------------------#
+
+
+
+
+# ------- session status ------- #
+# ----------------------------- #
 @app.get("/session/status")
 def get_session_status(db: Session = Depends(get_db)):
   from app.core.attendance_engine import AttendanceEngine
@@ -40,7 +63,13 @@ def get_session_status(db: Session = Depends(get_db)):
     "total_students": active.total_students
   }
 
+# ---------------------------------------------------#
 
+
+
+
+# ------- end session ------- #
+# ----------------------------- #
 @app.patch("/session/end")
 def end_sesion(db: Session = Depends(get_db)):
   from app.core.attendance_engine import AttendanceEngine
@@ -68,6 +97,13 @@ def end_sesion(db: Session = Depends(get_db)):
 
   return {"success": True, "stats": stats}
 
+# ---------------------------------------------------#
+
+
+
+
+# ------- get attendance list ------- #
+# ----------------------------- #
 @app.get("/attendance/list")
 def get_attendance_list(session_id: int = None, db: Session = Depends(get_db)):
   from app.database.models import AttendanceRecord, Student, Session as SessionModel
@@ -104,38 +140,48 @@ def get_attendance_list(session_id: int = None, db: Session = Depends(get_db)):
     "attendance": attendance_list
   }
 
+# ---------------------------------------------------#
+
+
+
+
+# ------- enroll students ------- #
+# ----------------------------- #
 @app.post("/students/enroll")
 def enroll_students(
-  student_id: str,
-  name: str,
-  email: str = None,
+  data: StudentEnrollRequest,
   db: Session = Depends(get_db)
 ):
   
   from app.database.models import Student
 
 # check if student alreeady exist
-  existing = db.query(Student).filter(Student.student_id == student_id).first()
+  existing = db.query(Student).filter(Student.student_id == data.student_id).first()
   if existing:
     return {"success": False, "message": "Student ID already exists"}
   
   student = Student(
-    student_id=student_id,
-    name=name,
-    email=email,
+    student_id=data.student_id,
+    name=data.name,
+    email=data.email,
     face_encodings=[]
   )
 
   db.add(student)
   db.commit()
 
-  return {"success": True, "message": f"Student {name} enrolled", "student_id": student_id}
+  return {"success": True, "message": f"Student {data.name} enrolled", "student_id": data.student_id}
+
+# ---------------------------------------------------#
 
 
 
+
+# ------- mark manual attendance ------- #
+# ----------------------------- #
 @app.post("/attendance/mark-manual")
 def mark_manual_attendance(
-  student_id: str,
+  data: ManualAttendanceRequest,
   db: Session = Depends(get_db)
 ):
   
@@ -146,18 +192,24 @@ def mark_manual_attendance(
   if not active:
     return {"success": False, "message": "No active session"}
   
-  student = db.query(Student).filter(Student.student_id == student_id).first()
+  student = db.query(Student).filter(Student.student_id == data.student_id).first()
   if not student:
     return {"success": False, "message": "Student not found"}
   
   engine = AttendanceEngine(db)
   engine.current_session_id = active.id
 
-  result = engine.mark_attendance(student_id, student.name, confidence=1.0)
+  result = engine.mark_attendance(data.student_id, student.name, confidence=1.0)
 
   return result
 
+# ---------------------------------------------------#
 
+
+
+
+# ------- session history ------- #
+# ----------------------------- #
 @app.get("/session/history")
 def get_session_history(limit: int = 10, db: Session = Depends(get_db)):
   from app.database.models import Session as SessionModel
@@ -181,3 +233,83 @@ def get_session_history(limit: int = 10, db: Session = Depends(get_db)):
       for s in sessions
     ]
   }
+
+# ---------------------------------------------------#
+
+
+
+
+# ------- session restart ------- #
+# ----------------------------- #
+@app.patch("/session/reopen")
+def reopen_session(session_id: int, db: Session = Depends(get_db)):
+  from app.database.models import Session as SessionModel
+
+  session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
+
+  if not session:
+    return {"success": False, "message": "Session not found"}
+    
+  if session.is_active:
+    return {"success": False, "message": "Session is already active"}
+    
+  # Close any other active sessions first
+  active_sessions = db.query(SessionModel).filter(SessionModel.is_active == True).all()
+  for s in active_sessions:
+    s.is_active = False
+    
+  # Reopen this session
+  session.is_active = True
+  session.ended_at = None
+    
+  db.commit()
+    
+  return {
+    "success": True,
+    "message": f"Session '{session.session_name}' reopened",
+    "session_id": session.id
+    }
+
+# ---------------------------------------------------#
+
+
+
+@app.get("/attendance/export")
+def export_attendance(session_id: int, db: Session = Depends(get_db)):
+  from app.database.models import AttendanceRecord,Student ,Session as SessionModel
+
+  session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
+
+  if not session:
+    return {"success": False, "message": "Session not found"}
+  
+  # get records
+  records = db.query(AttendanceRecord, Student).join(
+    Student, AttendanceRecord.student_id == Student.id
+  ).filter(
+    AttendanceRecord.session_id == session_id
+  ).all()
+
+  output = io.StringIO()
+  writer = csv.writer(output)
+
+  writer.writerow(['Student ID', 'Name', 'Confidence', 'Status'])
+
+  for record, student in records:
+    writer.writerow([
+      student.student_id,
+      student.name,
+      record.marked_at.strftime("%Y-%m-%d %H:%M:%S"),
+      f"{record.confidence_score:.2%}",
+      record.status
+    ])
+
+  output.seek(0)
+
+  filename = f"attendance_{session.session_name.replace(' ','_')}_{session_id}.csv"
+
+  return StreamingResponse(
+    iter([output.getvalue()]),
+    media_type="text/csv",
+    headers={"Content-Disposition": f"attachment; filename={filename}"}
+  )
