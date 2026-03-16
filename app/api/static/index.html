@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 30px; }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .status-active { background: #d4edda; color: #155724; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-primary:hover { background: #45a049; }
+        
+        .btn-danger { background: #f44336; color: white; }
+        .btn-danger:hover { background: #da190b; }
+        
+        .btn-secondary { background: #2196F3; color: white; }
+        .btn-secondary:hover { background: #0b7dda; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #4CAF50;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover { background: #f5f5f5; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .stat-number { font-size: 32px; font-weight: bold; color: #1976d2; }
+        .stat-label { color: #666; margin-top: 5px; }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Attendance System Dashboard</h1>
+        
+        <!-- Current Session Status -->
+        <div class="card">
+            <h2>Current Session</h2>
+            <div id="sessionStatus" class="status-bar status-inactive">
+                <span id="statusText">No active session</span>
+                <div>
+                    <button class="btn-primary" onclick="showStartModal()">Start New Session</button>
+                    <button class="btn-danger hidden" id="endBtn" onclick="endSession()">End Session</button>
+                    <button class="btn-secondary hidden" id="exportBtn" onclick="exportCSV()">Export CSV</button>
+                    <button class="btn-secondary" onclick="showHistory()">Session History</button>
+                </div>
+            </div>
+            
+            <div id="sessionStats" class="stats hidden">
+                <div class="stat-box">
+                    <div class="stat-number" id="presentCount">0</div>
+                    <div class="stat-label">Present</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="totalStudents">0</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="attendanceRate">0%</div>
+                    <div class="stat-label">Attendance Rate</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Start Session Modal -->
+        <div id="startModal" class="card hidden">
+            <h2>Start New Session</h2>
+            <div class="form-group">
+                <label>Session Name:</label>
+                <input type="text" id="sessionName" placeholder="e.g., Math 101 - Feb 12">
+            </div>
+            <div class="form-group">
+                <label>Class Name:</label>
+                <input type="text" id="className" placeholder="e.g., EEIOT-3">
+            </div>
+            <div class="form-group">
+                <label>Total Students:</label>
+                <input type="number" id="totalStudents" value="80">
+            </div>
+            <button class="btn-primary" onclick="startSession()">Start Session</button>
+            <button class="btn-secondary" onclick="hideStartModal()">Cancel</button>
+        </div>
+        
+        <!-- Attendance List -->
+        <div class="card">
+            <h2>Attendance List</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Time</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody id="attendanceTable">
+                    <tr><td colspan="4" style="text-align: center; color: #999;">No records yet</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+
+        <!-- Session History -->
+        <div id="historyCard" class="card hidden">
+            <h2>Session History</h2>
+            <button class="btn-secondary" onclick="hideHistory()">Close</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Session Name</th>
+                        <th>Started</th>
+                        <th>Status</th>
+                        <th>Present/Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTable">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Manual Attendance -->
+        <div id="manualCard" class="card">
+            <h2>Manual Attendance</h2>
+            <p style="color: #666; margin-bottom: 15px;">Mark attendance manually if face recognition fails</p>
+            <div class="form-group">
+                <label>Student ID:</label>
+                <input type="text" id="manualStudentId" placeholder="e.g., 0901EO231039">
+            </div>
+            <button class="btn-primary" onclick="markManual()">Mark Present</button>
+        </div>
+    </div>
+    <script>
+        let currentSessionId = null;
+        let refreshInterval = null;
+
+        // Load session status on page load
+        window.onload = function() {
+            checkSessionStatus();
+        };
+
+        function showStartModal() {
+            document.getElementById('startModal').classList.remove('hidden');
+        }
+
+        function hideStartModal() {
+            document.getElementById('startModal').classList.add('hidden');
+        }
+
+        async function startSession() {
+            const sessionName = document.getElementById('sessionName').value;
+            const classname = document.getElementById('className').value;
+            const totalStudents = document.getElementById('totalStudents').value;
+
+            if (!sessionName || !classname) {
+                alert('Please fill in session name and class name');
+                return;
+            }
+
+            const response = await fetch('/session/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_name: sessionName,
+                    class_name: classname,
+                    total_students: totalStudents
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                hideStartModal();
+                checkSessionStatus();
+                startAutoRefresh();
+            }
+        }
+
+        async function checkSessionStatus() {
+            const response = await fetch('/session/status');
+            const data = await response.json();
+
+            if (data.active) {
+                currentSessionId = data.session_id;
+                document.getElementById('statusText').textContent = `Active: ${data.session_name}`;
+                document.getElementById('sessionStatus').className = 'status-bar status-active';
+                document.getElementById('endBtn').classList.remove('hidden');
+                document.getElementById('exportBtn').classList.remove('hidden');
+                document.getElementById('sessionStats').classList.remove('hidden');
+                
+                document.getElementById('presentCount').textContent = data.present_count;
+                document.getElementById('totalStudents').textContent = data.total_students;
+                const rate = data.total_students > 0 ? 
+                    Math.round((data.present_count / data.total_students) * 100) : 0;
+                document.getElementById('attendanceRate').textContent = rate + '%';
+                
+                loadAttendanceList();
+                startAutoRefresh();
+            } else {
+                currentSessionId = null;
+                document.getElementById('statusText').textContent = 'No active session';
+                document.getElementById('sessionStatus').className = 'status-bar status-inactive';
+                document.getElementById('endBtn').classList.add('hidden');
+                document.getElementById('exportBtn').classList.add('hidden');
+                document.getElementById('sessionStats').classList.add('hidden');
+                stopAutoRefresh();
+            }
+        }
+
+        async function loadAttendanceList() {
+            if (!currentSessionId) return;
+
+            const response = await fetch(`/attendance/list?session_id=${currentSessionId}`);
+            const data = await response.json();
+
+            const tbody = document.getElementById('attendanceTable');
+            
+            if (data.attendance && data.attendance.length > 0) {
+                tbody.innerHTML = data.attendance.map(record => `
+                    <tr>
+                        <td>${record.student_id}</td>
+                        <td>${record.student_name}</td>
+                        <td>${record.marked_at}</td>
+                        <td>${(record.confidence * 100).toFixed(1)}%</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No records yet</td></tr>';
+            }
+        }
+
+        async function endSession() {
+            if (!confirm('End this session?')) return;
+
+            const response = await fetch('/session/end', {
+                method: 'PATCH'
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                alert(`Session ended\nPresent: ${data.stats.present}/${data.stats.total} (${data.stats.rate}%)`);
+                checkSessionStatus();
+            }
+        }
+
+        function exportCSV() {
+            if (!currentSessionId) return;
+            window.location.href = `/attendance/export?session_id=${currentSessionId}`;
+        }
+
+        function startAutoRefresh() {
+            if (refreshInterval) return;
+            refreshInterval = setInterval(() => {
+                checkSessionStatus();
+            }, 3000); // Refresh every 3 seconds
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+
+        async function showHistory() {
+            const response = await fetch('/session/history');
+            const data = await response.json();
+            
+            const tbody = document.getElementById('historyTable');
+            tbody.innerHTML = data.sessions.map(s => `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.session_name}</td>
+                    <td>${s.started_at}</td>
+                    <td>${s.is_active ? '<span style="color: green;">Active</span>' : '<span style="color: red;">Ended</span>'}</td>
+                    <td>${s.present_count}/${s.total_students}</td>
+                    <td>
+                        ${!s.is_active ? `<button class="btn-secondary" onclick="reopenSession(${s.id})">Reopen</button>` : ''}
+                        <button class="btn-secondary" onclick="exportSessionCSV(${s.id})">Export</button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('historyCard').classList.remove('hidden');
+        }
+
+        function hideHistory() {
+            document.getElementById('historyCard').classList.add('hidden');
+        }
+
+        async function reopenSession(sessionId) {
+            if (!confirm('Reopen this session?')) return;
+            
+            const response = await fetch(`/session/reopen?session_id=${sessionId}`, {
+                method: 'PATCH'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('Session reopened!');
+                hideHistory();
+                checkSessionStatus();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }
+
+        function exportSessionCSV(sessionId) {
+            window.location.href = `/attendance/export?session_id=${sessionId}`;
+        }
+
+        async function markManual() {
+            const studentId = document.getElementById('manualStudentId').value;
+            
+            if (!studentId) {
+                alert('Please enter student ID');
+                return;
+            }
+            
+            const response = await fetch('/attendance/mark-manual', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({student_id: studentId})
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert(`${data.student_name} marked present!`);
+                document.getElementById('manualStudentId').value = '';
+                checkSessionStatus();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }
+
+    </script>
+</body>
+</html>
