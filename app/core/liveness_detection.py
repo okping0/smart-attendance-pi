@@ -2,12 +2,14 @@ import cv2
 import dlib
 import numpy as np
 from scipy.spatial import distance
+from app.core.screen_detection import ScreenDetector
 
 class LivenessDetector:
     def __init__(self, model_path: str = "models/shape_predictor_68_face_landmarks.dat"):
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(model_path)
-        
+        self.screen_detector = ScreenDetector()
+
         self.LEFT_EYE = list(range(42, 48))
         self.RIGHT_EYE = list(range(36, 42))
         
@@ -98,6 +100,8 @@ class LivenessDetector:
         self.reset()
         start_time = time.time()
 
+        collected_frames = []
+
         print(f"Waiting for {required_blinks} blink(s)...")
 
         while True:
@@ -109,6 +113,9 @@ class LivenessDetector:
             ret, frame = cap.read()
             if not ret:
                 return False
+            
+            if len(collected_frames) <10:
+                collected_frames.append(frame.copy())
 
             result = self.process_frame(frame)
 
@@ -126,4 +133,13 @@ class LivenessDetector:
 
             if result['blink_count'] >= required_blinks:
                 print(f"Blink detected!")
+
+                print("Checking for screen spoofing...")
+                screen_check = self.screen_detector.analyze_multiple_frames(collected_frames)
+
+                if screen_check["is_screen"]:
+                    print(f"Screen detected - possible spoofing")
+                    return False
+                
+                print(f"Liveness verified (screen check passed)")
                 return True

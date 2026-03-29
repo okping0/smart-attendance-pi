@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from insightface.app import FaceAnalysis
 from typing import Optional, Tuple 
@@ -13,23 +12,23 @@ class FaceRecognitionEngine:
     self.threshold = 0.40
 
   def load_model(self):
-    print("Loading face recognition mode...")
+    print("Loading face recognition model...")
     self.app = FaceAnalysis(name=self.model_name, providers = ['CPUExecutionProvider'])
     self.app.prepare(ctx_id = 1, det_size=(640, 480))
     print("Model loaded")
 
   def detect_face(self, image: np.ndarray) -> Optional[np.ndarray]:
     if self.app is None:
-      raise RuntimeError("Model not loaded!")
+      raise RuntimeError("Model not loaded yet!")
     
     faces = self.app.get(image)
     if len(faces) == 0:
       return None
     
     if len(faces) >1:
-      faces = sorted(faces, keys=lambda x: (x.bbox[2] - x.bbox[0]) * (x.bbox[3] - x.bbox[1]), reverse = True)
+      faces = sorted(faces, key=lambda x: (x.bbox[2] - x.bbox[0]) * (x.bbox[3] - x.bbox[1]), reverse = True)
 
-    return faces[0]. embedding
+    return faces[0].embedding
   
   def calculate_similarity(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:
     similarity = np.dot(embedding1, embedding2) / (
