@@ -2,13 +2,12 @@ import cv2
 import dlib
 import numpy as np
 from scipy.spatial import distance
-from app.core.screen_detection import ScreenDetector
 
 class LivenessDetector:
     def __init__(self, model_path: str = "models/shape_predictor_68_face_landmarks.dat"):
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(model_path)
-        self.screen_detector = ScreenDetector()
+        self.antispoof = AntiSpoofDetector()
 
         self.LEFT_EYE = list(range(42, 48))
         self.RIGHT_EYE = list(range(36, 42))
@@ -84,7 +83,7 @@ class LivenessDetector:
             "blink_count": self.blink_count
         }
 
-    def wait_for_blink(self, cap, required_blinks: int = 1, timeout_seconds: int = 10) -> bool:
+    def wait_for_blink(self, cap, required_blinks: int = 1, timeout_seconds: int = 10) -> dict:
         """
         Wait for student to blink required number of times
         
@@ -108,11 +107,11 @@ class LivenessDetector:
             elapsed = time.time() - start_time
             if elapsed > timeout_seconds:
                 print("Timeout - no blink detected")
-                return False
+                return {"success": False, "reason": "timeout"}
 
             ret, frame = cap.read()
             if not ret:
-                return False
+                return {"success": False, "reason": " not ret"}
             
             if len(collected_frames) <10:
                 collected_frames.append(frame.copy())
@@ -133,13 +132,4 @@ class LivenessDetector:
 
             if result['blink_count'] >= required_blinks:
                 print(f"Blink detected!")
-
-                print("Checking for screen spoofing...")
-                screen_check = self.screen_detector.analyze_multiple_frames(collected_frames)
-
-                if screen_check["is_screen"]:
-                    print(f"Screen detected - possible spoofing")
-                    return False
-                
-                print(f"Liveness verified (screen check passed)")
-                return True
+                return {"success": True}

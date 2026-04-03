@@ -52,7 +52,8 @@ class AttendanceSystem:
     blink_passed = self.liveness.wait_for_blink(cap, required_blinks=3, timeout_seconds=10)
     cv2.destroyWindow('Liveness Check')
 
-    if not blink_passed:
+    if not blink_passed["success"]:
+      reason = blink_passed.get("reason", "unknown")
       return {"success": False, "stage": "Liveness"}
     
     result = self.attendance.mark_attendance(student_id, student_name, confidence)
@@ -119,7 +120,7 @@ class AttendanceSystem:
                     elif stage == "liveness":
                         print(f"Liveness check failed - no blink detected")
                     elif stage == "database":
-                        print(f"❌ Database error: {result['message']}")
+                        print(f"Database error: {result['message']}")
                     print()
             
             elif key == ord('q'):
