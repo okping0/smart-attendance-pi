@@ -7,7 +7,6 @@ class LivenessDetector:
     def __init__(self, model_path: str = "models/shape_predictor_68_face_landmarks.dat"):
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(model_path)
-        self.antispoof = AntiSpoofDetector()
 
         self.LEFT_EYE = list(range(42, 48))
         self.RIGHT_EYE = list(range(36, 42))
