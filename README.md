@@ -7,44 +7,37 @@ No internet connection required.
 
 ---
 
-## Project Roadmap
+## What Makes This Different
 
-### Current (Almost Done)
+Most attendance systems require:
+- Active student participation (QR scanning, manual marking)
+- Internet connectivity
+- Expensive hardware
+- IT support for deployment
 
-- Face recognition using InsightFace (`buffalo_sc`)
-- PostgreSQL database integration with attendance engine
-- Blink detection (liveness verification)
-
----
-
-### After Blink Detection
-
-- Combine face recognition, blink detection, and attendance logic into a single unified pipeline
-- Perform full end-to-end testing and stabilization
-
----
-
-### FastAPI Backend (Next Phase)
-
-- Teacher authentication
-- Start and stop attendance sessions via web interface
-- Live attendance count
-- View present students
-- Download CSV reports
-- Student enrollment through web interface
-
-FastAPI integration begins immediately after the core recognition pipeline is stable.
+**This system:**
+- Passively verifies presence through face recognition + liveness detection
+- Works completely offline (local database, no cloud)
+- Costs less (Raspberry Pi 4 + webcam + components)
+- Student-operated (press button → blink → done)
+- Teacher controls remotely via web dashboard
 
 ---
 
-### Raspberry Pi Deployment Phase
+## How It Works
 
-- GPIO button handling
-- LCD display integration
-- LED status indicators
-- Camera performance optimization
-- Auto-start on boot using systemd
-- Watchdog-based auto-restart mechanism
+### Student Flow (5–7 seconds)
+1. Press button on device
+2. Look at camera
+3. Blink when prompted (liveness check)
+4. LCD shows: "John Doe - Marked Present!"
+5. Pass device to next student
+
+### Teacher Flow
+- Start session from web dashboard (laptop/phone)
+- Students mark themselves using the device
+- View live attendance count
+- End session and download CSV report
 
 ---
 
@@ -66,25 +59,61 @@ Camera → Face Detection → Embedding Extraction → Cosine Matching
 
 ## Technology Stack
 
+**Core Recognition:**
+- InsightFace (`buffalo_sc` model) – CPU-optimized face recognition
+- ONNX Runtime (CPU execution)
+- dlib – Blink detection via Eye Aspect Ratio (EAR)
+- OpenCV – Frame processing
+
+**Backend:**
+- FastAPI – REST API + teacher dashboard
+- PostgreSQL – Student data, attendance records, sessions
+- SQLAlchemy ORM
+
+**Hardware (Raspberry Pi):**
+- GPIO – Button input, LED status indicators
+- I2C LCD (16×2) – Student feedback messages
+- USB Webcam (720p minimum)
+
+**Development:**
 - Python 3.10
-- InsightFace (`buffalo_sc`)
-- ONNX Runtime (CPU)
-- OpenCV
-- NumPy
-- PostgreSQL
-- FastAPI (Next Phase)
+- Tested on Windows (development), deployed on Raspberry Pi OS
 
 ---
 
 ## Target Performance
 
-- 2–3 seconds per student
-- 80 students processed in under 13 minutes
+- 5-7 seconds per student
+- 80 students processed in under 15 minutes
 - Fully offline operation
 - Designed for Raspberry Pi 4 (CPU-only execution)
 
 ---
 
-## Current Focus
+### In Progress
+- Anti-spoofing enhancement (currently: blink + face verification)
+- Email/SMS notifications
+- Hardware integration (GPIO, LCD, LEDs)
 
-Complete blink detection, integrate it into the core attendance pipeline, stabilize the system, and then proceed to backend development.
+
+## Anti-Spoofing Strategy
+
+**Current Implementation:**
+1. **Blink detection** – Defeats printed photos
+2. **Face verification during blink** – Prevents swap attacks (showing photo → person blinks)
+
+**Known Limitations:**
+- Pre-recorded videos with blinks may pass (low probability in practice)
+- Live video calls on screens are not fully prevented
+
+**Exploring:**
+- Challenge-response system (random actions: smile, turn head)
+- Deep learning models (deferred due to Raspberry Pi constraints)
+
+--- 
+
+## Contributing
+
+Currently under active development. Suggestions and feedback are welcome, especially on:
+- Anti-spoofing techniques suitable for Raspberry Pi
+- UI/UX improvements for teacher dashboard
