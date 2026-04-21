@@ -1,11 +1,53 @@
+# Virtual environments
 venv/
 .venv/
 env/
+
+# Python cache
 __pycache__/
 *.pyc
-.env
-data/
-.pkl/
 
-models/
+# Environment variables
+.env
+
+# Data (runtime/generated)
+data/
+*.pkl
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# MODELS (important section)
+# -----------------------------
+
+# Ignore everything inside models
+models/*
+resources/
+
+# Keep folder structure
+!models/antispoofing/
+!models/antispoofing/anti_spoof_models/
+!models/detection_model/
+
+# Keep required config (face detection)
+!models/detection_model/deploy.prototxt
+
+# Ignore heavy weights everywhere
+*.pth
+*.pt
 *.dat
+*.caffemodel
+
+# Ignore training pipeline (MiniVision extras)
+app/antispoofing/data_io/
+app/antispoofing/train_main.py
+app/antispoofing/generate_patches.py
