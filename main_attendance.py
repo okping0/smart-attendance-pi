@@ -72,7 +72,7 @@ class AttendanceSystem:
         "stage": "database",
         "message": result["message"]
       }
-    
+
   def run(self):
         """Main loop"""
         # check if already a session..if not tell to create one 
@@ -100,7 +100,7 @@ class AttendanceSystem:
             cv2.imshow('Attendance System - Press SPACE', frame)
             
             key = cv2.waitKey(1) & 0xFF
-            
+               
             if key == ord(' '):
                 result = self.process_student(frame, cap)
                 

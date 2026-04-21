@@ -4,169 +4,503 @@
     <title>Attendance Dashboard</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #0a0d14;
+            --surface: #111520;
+            --surface2: #161c2e;
+            --border: rgba(255,255,255,0.07);
+            --accent: #4fffb0;
+            --accent2: #4f8fff;
+            --danger: #ff4f6a;
+            --warning: #ffb84f;
+            --text: #e8eaf0;
+            --muted: #5a6380;
+            --success-bg: rgba(79,255,176,0.08);
+            --danger-bg: rgba(255,79,106,0.08);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Arial, sans-serif; 
-            background: #f5f5f5; 
-            padding: 20px;
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
-        h1 { color: #333; margin-bottom: 30px; }
-        
-        .card {
-            background: white;
-            padding: 25px;
-            margin: 20px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .status-bar {
+
+        /* ── NAVBAR ── */
+        nav {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 6px;
+            justify-content: space-between;
+            padding: 0 40px;
+            height: 64px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-brand .dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #liveClock {
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            color: var(--muted);
+            letter-spacing: 1px;
+        }
+
+        .session-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .pill-active {
+            background: var(--success-bg);
+            color: var(--accent);
+            border: 1px solid rgba(79,255,176,0.2);
+        }
+
+        .pill-inactive {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(255,79,106,0.2);
+        }
+
+        /* ── LAYOUT ── */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 36px 40px;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 28px;
+            letter-spacing: -1px;
+        }
+
+        .page-title span { color: var(--accent); }
+
+        /* ── STATS ROW ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 28px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+        }
+
+        .stat-card.green::before  { background: var(--accent); }
+        .stat-card.blue::before   { background: var(--accent2); }
+        .stat-card.orange::before { background: var(--warning); }
+
+        .stat-card:hover { border-color: rgba(255,255,255,0.14); }
+
+        .stat-icon { font-size: 22px; margin-bottom: 12px; }
+
+        .stat-number {
+            font-family: 'Syne', sans-serif;
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -2px;
+            margin-bottom: 6px;
+        }
+
+        .stat-card.green .stat-number  { color: var(--accent); }
+        .stat-card.blue .stat-number   { color: var(--accent2); }
+        .stat-card.orange .stat-number { color: var(--warning); }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
             margin-bottom: 20px;
         }
-        
-        .status-active { background: #d4edda; color: #155724; }
-        .status-inactive { background: #f8d7da; color: #721c24; }
-        
-        button {
-            padding: 12px 24px;
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+        }
+
+        .card-title {
+            font-family: 'Syne', sans-serif;
             font-size: 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
+            font-weight: 700;
+            letter-spacing: -0.3px;
         }
-        
-        .btn-primary { background: #4CAF50; color: white; }
-        .btn-primary:hover { background: #45a049; }
-        
-        .btn-danger { background: #f44336; color: white; }
-        .btn-danger:hover { background: #da190b; }
-        
-        .btn-secondary { background: #2196F3; color: white; }
-        .btn-secondary:hover { background: #0b7dda; }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+
+        /* ── SESSION BAR ── */
+        .session-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--surface2);
+            border-radius: 10px;
+            border: 1px solid var(--border);
         }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        th {
-            background: #4CAF50;
-            color: white;
+
+        .session-name-display {
+            font-family: 'Syne', sans-serif;
+            font-size: 15px;
             font-weight: 600;
         }
-        
-        tr:hover { background: #f5f5f5; }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
+
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* ── BUTTONS ── */
+        button {
+            padding: 10px 20px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
         }
-        
-        .stat-box {
-            background: #e3f2fd;
-            padding: 20px;
-            border-radius: 6px;
-            text-align: center;
+
+        .btn-primary { background: var(--accent); color: #0a0d14; font-weight: 700; }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        .btn-danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(255,79,106,0.25);
         }
-        
-        .stat-number { font-size: 32px; font-weight: bold; color: #1976d2; }
-        .stat-label { color: #666; margin-top: 5px; }
-        
-        .form-group {
-            margin: 15px 0;
+        .btn-danger:hover { background: rgba(255,79,106,0.18); }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+            border: 1px solid var(--border);
         }
-        
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+        .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 6px; }
+
+        /* ── ACTIVE FILTER ── */
+        .active-filter {
+            background: rgba(79,255,176,0.12) !important;
+            color: var(--accent) !important;
+            border-color: rgba(79,255,176,0.3) !important;
+        }
+
+        /* ── HISTORY SELECT ── */
+        .history-select {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+            cursor: pointer;
+        }
+        .history-select:focus { border-color: var(--accent); }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            width: 100%;
+            max-width: 460px;
+            animation: slideUp 0.25s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 24px;
+        }
+
+        /* ── FORM ── */
+        .form-group { margin-bottom: 18px; }
+
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #555;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
         }
-        
+
         input {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        input:focus { border-color: var(--accent); }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+        /* ── TABLE ── */
+        .table-wrap { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        thead th {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--muted);
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+        tbody td { padding: 14px 16px; font-size: 14px; color: var(--text); }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-high   { background: rgba(79,255,176,0.12);  color: var(--accent);  }
+        .badge-mid    { background: rgba(255,184,79,0.12);   color: var(--warning); }
+        .badge-low    { background: rgba(255,79,106,0.12);   color: var(--danger);  }
+        .badge-active { background: rgba(79,255,176,0.12);  color: var(--accent);  }
+        .badge-ended  { background: rgba(255,255,255,0.06); color: var(--muted);   }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 0;
+            color: var(--muted);
             font-size: 14px;
         }
-        
-        .hidden { display: none; }
+        .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+
+        /* ── TOAST ── */
+        #toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: toastIn 0.3s ease;
+            min-width: 280px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        .toast-success { background: #0d2e1f; border: 1px solid rgba(79,255,176,0.3);  color: var(--accent);  }
+        .toast-error   { background: #2e0d14; border: 1px solid rgba(255,79,106,0.3);  color: var(--danger);  }
+        .toast-info    { background: #0d1a2e; border: 1px solid rgba(79,143,255,0.3);  color: var(--accent2); }
+
+        /* ── MISC ── */
+        .hidden { display: none !important; }
+
+        .search-wrap { position: relative; max-width: 280px; }
+        .search-wrap input { padding-left: 36px; }
+        .search-icon {
+            position: absolute;
+            left: 12px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .progress-wrap {
+            margin-top: 10px;
+            background: var(--surface2);
+            border-radius: 4px;
+            height: 4px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Attendance System Dashboard</h1>
-        
-        <!-- Current Session Status -->
-        <div class="card">
-            <h2>Current Session</h2>
-            <div id="sessionStatus" class="status-bar status-inactive">
-                <span id="statusText">No active session</span>
-                <div>
-                    <button class="btn-primary" onclick="showStartModal()">Start New Session</button>
-                    <button class="btn-danger hidden" id="endBtn" onclick="endSession()">End Session</button>
-                    <button class="btn-secondary hidden" id="exportBtn" onclick="exportCSV()">Export CSV</button>
-                    <button class="btn-secondary" onclick="showHistory()">Session History</button>
-                </div>
-            </div>
-            
-            <div id="sessionStats" class="stats hidden">
-                <div class="stat-box">
-                    <div class="stat-number" id="presentCount">0</div>
-                    <div class="stat-label">Present</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-number" id="totalStudents">0</div>
-                    <div class="stat-label">Total Students</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-number" id="attendanceRate">0%</div>
-                    <div class="stat-label">Attendance Rate</div>
-                </div>
+
+<!-- NAVBAR -->
+<nav>
+    <div class="nav-brand">
+        <div class="dot"></div>
+        SmartAttend
+    </div>
+    <div class="nav-right">
+        <span id="liveClock">--:--:--</span>
+        <span id="navPill" class="session-pill pill-inactive">● NO SESSION</span>
+    </div>
+</nav>
+
+<!-- MAIN -->
+<div class="container">
+    <div class="page-title">Attendance <span>Dashboard</span></div>
+
+    <!-- STATS -->
+    <div id="statsRow" class="stats-row hidden">
+        <div class="stat-card green">
+            <div class="stat-icon">✓</div>
+            <div class="stat-number" id="presentCount">0</div>
+            <div class="stat-label">Present</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon">◈</div>
+            <div class="stat-number" id="totalStudentsDisplay">0</div>
+            <div class="stat-label">Total Students</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon">◎</div>
+            <div class="stat-number" id="attendanceRate">0%</div>
+            <div class="stat-label">Attendance Rate</div>
+            <div class="progress-wrap">
+                <div class="progress-bar" id="progressBar" style="width:0%"></div>
             </div>
         </div>
-        
-        <!-- Start Session Modal -->
-        <div id="startModal" class="card hidden">
-            <h2>Start New Session</h2>
-            <div class="form-group">
-                <label>Session Name:</label>
-                <input type="text" id="sessionName" placeholder="e.g., Math 101 - Feb 12">
-            </div>
-            <div class="form-group">
-                <label>Class Name:</label>
-                <input type="text" id="className" placeholder="e.g., EEIOT-3">
-            </div>
-            <div class="form-group">
-                <label>Total Students:</label>
-                <input type="number" id="totalStudents" value="80">
-            </div>
-            <button class="btn-primary" onclick="startSession()">Start Session</button>
-            <button class="btn-secondary" onclick="hideStartModal()">Cancel</button>
+    </div>
+
+    <!-- SESSION CONTROL -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Session Control</div>
         </div>
-        
-        <!-- Attendance List -->
-        <div class="card">
-            <h2>Attendance List</h2>
+        <div class="session-bar">
+            <span class="session-name-display" id="statusText">No active session</span>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="openStartModal()">+ New Session</button>
+                <button class="btn-danger hidden" id="endBtn" onclick="endSession()">End Session</button>
+                <button class="btn-secondary hidden" id="exportBtn" onclick="exportCSV()">↓ Export CSV</button>
+                <button class="btn-secondary" onclick="showHistory()">History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ATTENDANCE LIST -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Live Attendance</div>
+            <div class="search-wrap">
+                <span class="search-icon">⌕</span>
+                <input type="text" id="searchInput" placeholder="Search student..." oninput="filterTable()">
+            </div>
+        </div>
+        <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
@@ -177,249 +511,368 @@
                     </tr>
                 </thead>
                 <tbody id="attendanceTable">
-                    <tr><td colspan="4" style="text-align: center; color: #999;">No records yet</td></tr>
+                    <tr><td colspan="4">
+                        <div class="empty-state">
+                            <div class="icon">◌</div>
+                            No records yet
+                        </div>
+                    </td></tr>
                 </tbody>
             </table>
         </div>
+    </div>
 
+    <!-- SESSION HISTORY -->
+    <div class="card hidden" id="historyCard">
+        <div class="card-header">
+            <div class="card-title">Session History</div>
+            <button class="btn-secondary btn-sm" onclick="hideHistory()">✕ Close</button>
+        </div>
 
-        <!-- Session History -->
-        <div id="historyCard" class="card hidden">
-            <h2>Session History</h2>
-            <button class="btn-secondary" onclick="hideHistory()">Close</button>
+        <!-- Filters -->
+        <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
+            <div class="search-wrap" style="flex:1; min-width:180px; max-width:100%;">
+                <span class="search-icon">⌕</span>
+                <input type="text" id="historySearch" placeholder="Search session or class..." oninput="applyHistoryFilters()">
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-secondary btn-sm active-filter" id="filter-all"    onclick="setHistoryFilter('all')">All</button>
+                <button class="btn-secondary btn-sm"               id="filter-active" onclick="setHistoryFilter('active')">Live</button>
+                <button class="btn-secondary btn-sm"               id="filter-ended"  onclick="setHistoryFilter('ended')">Ended</button>
+            </div>
+            <select id="historyLimit" class="history-select" onchange="applyHistoryFilters()">
+                <option value="50">Last 50</option>
+                <option value="100">Last 100</option>
+                <option value="999">All</option>
+            </select>
+        </div>
+
+        <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Session Name</th>
+                        <th>Class</th>
                         <th>Started</th>
+                        <th>Ended</th>
                         <th>Status</th>
-                        <th>Present/Total</th>
+                        <th>Present / Total</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="historyTable">
-                </tbody>
+                <tbody id="historyTable"></tbody>
             </table>
         </div>
+    </div>
 
-        <!-- Manual Attendance -->
-        <div id="manualCard" class="card">
-            <h2>Manual Attendance</h2>
-            <p style="color: #666; margin-bottom: 15px;">Mark attendance manually if face recognition fails</p>
-            <div class="form-group">
-                <label>Student ID:</label>
-                <input type="text" id="manualStudentId" placeholder="e.g., 0901EO231039">
+    <!-- MANUAL ATTENDANCE -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Manual Mark</div>
+        </div>
+        <p style="color:var(--muted); font-size:13px; margin-bottom:16px;">Use when face recognition fails</p>
+        <div style="display:flex; gap:12px; align-items:flex-end;">
+            <div class="form-group" style="flex:1; margin-bottom:0;">
+                <label>Student ID</label>
+                <input type="text" id="manualStudentId" placeholder="e.g. 0901EO231039">
             </div>
-            <button class="btn-primary" onclick="markManual()">Mark Present</button>
+            <button class="btn-primary" onclick="markManual()" style="padding:12px 24px;">Mark Present</button>
         </div>
     </div>
-    <script>
-        let currentSessionId = null;
-        let refreshInterval = null;
+</div>
 
-        // Load session status on page load
-        window.onload = function() {
+<!-- START SESSION MODAL -->
+<div class="modal-overlay" id="startModal">
+    <div class="modal">
+        <div class="modal-title">New Session</div>
+        <div class="form-group">
+            <label>Session Name</label>
+            <input type="text" id="sessionName" placeholder="e.g. Math 101 – Feb 12">
+        </div>
+        <div class="form-group">
+            <label>Class Name</label>
+            <input type="text" id="className" placeholder="e.g. EEIOT-3">
+        </div>
+        <div class="form-group">
+            <label>Total Students</label>
+            <input type="number" id="totalStudentsInput" value="80">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-primary" onclick="startSession()" style="flex:1;">Start Session</button>
+            <button class="btn-secondary" onclick="closeStartModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<script>
+    let currentSessionId = null;
+    let refreshInterval  = null;
+    let attendanceData   = [];
+
+    // ── CLOCK ──
+    function updateClock() {
+        document.getElementById('liveClock').textContent =
+            new Date().toLocaleTimeString('en-US', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ── TOAST ──
+    function toast(msg, type = 'info') {
+        const el = document.createElement('div');
+        el.className = `toast toast-${type}`;
+        const icons = { success: '✓', error: '✕', info: 'ℹ' };
+        el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+        document.getElementById('toast-container').appendChild(el);
+        setTimeout(() => el.remove(), 3500);
+    }
+
+    // ── MODAL ──
+    function openStartModal()  { document.getElementById('startModal').classList.add('open'); }
+    function closeStartModal() { document.getElementById('startModal').classList.remove('open'); }
+    document.getElementById('startModal').addEventListener('click', function(e) {
+        if (e.target === this) closeStartModal();
+    });
+
+    // ── SESSION START ──
+    async function startSession() {
+        const sessionName   = document.getElementById('sessionName').value.trim();
+        const classname     = document.getElementById('className').value.trim();
+        const totalStudents = document.getElementById('totalStudentsInput').value;
+
+        if (!sessionName || !classname) { toast('Please fill in all fields', 'error'); return; }
+
+        const res  = await fetch('/session/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ session_name: sessionName, class_name: classname, total_students: totalStudents })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            closeStartModal();
+            toast('Session started!', 'success');
             checkSessionStatus();
-        };
+            startAutoRefresh();
+        } else {
+            toast(data.message || 'Failed to start session', 'error');
+        }
+    }
 
-        function showStartModal() {
-            document.getElementById('startModal').classList.remove('hidden');
+    // ── SESSION STATUS ──
+    async function checkSessionStatus() {
+        const res  = await fetch('/session/status');
+        const data = await res.json();
+
+        const navPill   = document.getElementById('navPill');
+        const statsRow  = document.getElementById('statsRow');
+        const endBtn    = document.getElementById('endBtn');
+        const exportBtn = document.getElementById('exportBtn');
+
+        if (data.active) {
+            currentSessionId = data.session_id;
+            document.getElementById('statusText').textContent = data.session_name;
+            navPill.className   = 'session-pill pill-active';
+            navPill.textContent = '● LIVE';
+            endBtn.classList.remove('hidden');
+            exportBtn.classList.remove('hidden');
+            statsRow.classList.remove('hidden');
+
+            const present = data.present_count  || 0;
+            const total   = data.total_students || 0;
+            const rate    = total > 0 ? Math.round((present / total) * 100) : 0;
+
+            document.getElementById('presentCount').textContent        = present;
+            document.getElementById('totalStudentsDisplay').textContent = total;
+            document.getElementById('attendanceRate').textContent      = rate + '%';
+            document.getElementById('progressBar').style.width         = rate + '%';
+
+            loadAttendanceList();
+            startAutoRefresh();
+        } else {
+            currentSessionId = null;
+            document.getElementById('statusText').textContent = 'No active session';
+            navPill.className   = 'session-pill pill-inactive';
+            navPill.textContent = '● NO SESSION';
+            endBtn.classList.add('hidden');
+            exportBtn.classList.add('hidden');
+            statsRow.classList.add('hidden');
+            stopAutoRefresh();
+        }
+    }
+
+    // ── ATTENDANCE LIST ──
+    async function loadAttendanceList() {
+        if (!currentSessionId) return;
+        const res  = await fetch(`/attendance/list?session_id=${currentSessionId}`);
+        const data = await res.json();
+        attendanceData = data.attendance || [];
+        renderTable(attendanceData);
+    }
+
+    function renderTable(records) {
+        const tbody = document.getElementById('attendanceTable');
+        if (!records.length) {
+            tbody.innerHTML = `<tr><td colspan="4">
+                <div class="empty-state"><div class="icon">◌</div>No records yet</div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = records.map(r => {
+            const conf = (r.confidence * 100).toFixed(1);
+            const cls  = conf >= 80 ? 'badge-high' : conf >= 60 ? 'badge-mid' : 'badge-low';
+            return `<tr>
+                <td style="font-family:'Syne',sans-serif;font-size:13px;color:var(--muted)">${r.student_id}</td>
+                <td style="font-weight:500">${r.student_name}</td>
+                <td style="color:var(--muted);font-size:13px">${r.marked_at}</td>
+                <td><span class="badge ${cls}">${conf}%</span></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function filterTable() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        renderTable(attendanceData.filter(r =>
+            r.student_name.toLowerCase().includes(q) || r.student_id.toLowerCase().includes(q)
+        ));
+    }
+
+    // ── END SESSION ──
+    async function endSession() {
+        if (!confirm('End this session?')) return;
+        const res  = await fetch('/session/end', { method: 'PATCH' });
+        const data = await res.json();
+        if (data.success) {
+            toast(`Session ended — ${data.stats.present}/${data.stats.total} (${data.stats.rate}%)`, 'info');
+            checkSessionStatus();
+        }
+    }
+
+    // ── EXPORT ──
+    function exportCSV() {
+        if (!currentSessionId) return;
+        window.location.href = `/attendance/export?session_id=${currentSessionId}`;
+    }
+
+    // ── AUTO REFRESH ──
+    function startAutoRefresh() {
+        if (refreshInterval) return;
+        refreshInterval = setInterval(checkSessionStatus, 3000);
+    }
+    function stopAutoRefresh() {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+
+    // ── HISTORY ──
+    let currentHistoryFilter = 'all';
+
+    async function showHistory() {
+        document.getElementById('historyCard').classList.remove('hidden');
+        document.getElementById('historyCard').scrollIntoView({ behavior: 'smooth' });
+        await applyHistoryFilters();
+    }
+
+    function hideHistory() {
+        document.getElementById('historyCard').classList.add('hidden');
+    }
+
+    function setHistoryFilter(f) {
+        currentHistoryFilter = f;
+        ['all', 'active', 'ended'].forEach(id =>
+            document.getElementById(`filter-${id}`).classList.remove('active-filter')
+        );
+        document.getElementById(`filter-${f}`).classList.add('active-filter');
+        applyHistoryFilters();
+    }
+
+    async function applyHistoryFilters() {
+        const search = document.getElementById('historySearch').value.trim();
+        const limit  = document.getElementById('historyLimit').value;
+        const status = currentHistoryFilter === 'all' ? '' : currentHistoryFilter;
+
+        const params = new URLSearchParams({ limit });
+        if (status) params.append('status', status);
+        if (search) params.append('search', search);
+
+        const res  = await fetch(`/session/history?${params}`);
+        const data = await res.json();
+        const tbody = document.getElementById('historyTable');
+
+        if (!data.sessions.length) {
+            tbody.innerHTML = `<tr><td colspan="8">
+                <div class="empty-state"><div class="icon">◌</div>No sessions found</div>
+            </td></tr>`;
+            return;
         }
 
-        function hideStartModal() {
-            document.getElementById('startModal').classList.add('hidden');
+        tbody.innerHTML = data.sessions.map(s => {
+            const rate = s.total_students > 0
+                ? Math.round((s.present_count / s.total_students) * 100) : 0;
+            return `<tr>
+                <td style="color:var(--muted);font-size:13px">${s.id}</td>
+                <td style="font-weight:500">${s.session_name}</td>
+                <td style="color:var(--muted);font-size:13px">${s.class_name || '—'}</td>
+                <td style="color:var(--muted);font-size:13px">${s.started_at}</td>
+                <td style="color:var(--muted);font-size:13px">${s.ended_at || '—'}</td>
+                <td><span class="badge ${s.is_active ? 'badge-active' : 'badge-ended'}">${s.is_active ? 'LIVE' : 'ENDED'}</span></td>
+                <td>
+                    <span style="font-weight:600">${s.present_count}</span>
+                    <span style="color:var(--muted)"> / ${s.total_students}</span>
+                    <span style="color:var(--muted);font-size:12px"> (${rate}%)</span>
+                </td>
+                <td style="display:flex;gap:8px;">
+                    ${!s.is_active ? `<button class="btn-secondary btn-sm" onclick="reopenSession(${s.id})">Reopen</button>` : ''}
+                    <button class="btn-secondary btn-sm" onclick="exportSessionCSV(${s.id})">Export</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function reopenSession(sessionId) {
+        if (!confirm('Reopen this session?')) return;
+        const res  = await fetch(`/session/reopen?session_id=${sessionId}`, { method: 'PATCH' });
+        const data = await res.json();
+        if (data.success) {
+            toast('Session reopened!', 'success');
+            hideHistory();
+            checkSessionStatus();
+        } else {
+            toast('Error: ' + data.message, 'error');
         }
+    }
 
-        async function startSession() {
-            const sessionName = document.getElementById('sessionName').value;
-            const classname = document.getElementById('className').value;
-            const totalStudents = document.getElementById('totalStudents').value;
+    function exportSessionCSV(sessionId) {
+        window.location.href = `/attendance/export?session_id=${sessionId}`;
+    }
 
-            if (!sessionName || !classname) {
-                alert('Please fill in session name and class name');
-                return;
-            }
+    // ── MANUAL ──
+    async function markManual() {
+        const studentId = document.getElementById('manualStudentId').value.trim();
+        if (!studentId) { toast('Enter a student ID', 'error'); return; }
 
-            const response = await fetch('/session/start', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    session_name: sessionName,
-                    class_name: classname,
-                    total_students: totalStudents
-                })
-            });
+        const res  = await fetch('/attendance/mark-manual', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ student_id: studentId })
+        });
+        const data = await res.json();
 
-            const data = await response.json();
-            
-            if (data.success) {
-                hideStartModal();
-                checkSessionStatus();
-                startAutoRefresh();
-            }
+        if (data.success) {
+            toast(`${data.student_name} marked present!`, 'success');
+            document.getElementById('manualStudentId').value = '';
+            checkSessionStatus();
+        } else {
+            toast('Error: ' + data.message, 'error');
         }
+    }
 
-        async function checkSessionStatus() {
-            const response = await fetch('/session/status');
-            const data = await response.json();
-
-            if (data.active) {
-                currentSessionId = data.session_id;
-                document.getElementById('statusText').textContent = `Active: ${data.session_name}`;
-                document.getElementById('sessionStatus').className = 'status-bar status-active';
-                document.getElementById('endBtn').classList.remove('hidden');
-                document.getElementById('exportBtn').classList.remove('hidden');
-                document.getElementById('sessionStats').classList.remove('hidden');
-                
-                document.getElementById('presentCount').textContent = data.present_count;
-                document.getElementById('totalStudents').textContent = data.total_students;
-                const rate = data.total_students > 0 ? 
-                    Math.round((data.present_count / data.total_students) * 100) : 0;
-                document.getElementById('attendanceRate').textContent = rate + '%';
-                
-                loadAttendanceList();
-                startAutoRefresh();
-            } else {
-                currentSessionId = null;
-                document.getElementById('statusText').textContent = 'No active session';
-                document.getElementById('sessionStatus').className = 'status-bar status-inactive';
-                document.getElementById('endBtn').classList.add('hidden');
-                document.getElementById('exportBtn').classList.add('hidden');
-                document.getElementById('sessionStats').classList.add('hidden');
-                stopAutoRefresh();
-            }
-        }
-
-        async function loadAttendanceList() {
-            if (!currentSessionId) return;
-
-            const response = await fetch(`/attendance/list?session_id=${currentSessionId}`);
-            const data = await response.json();
-
-            const tbody = document.getElementById('attendanceTable');
-            
-            if (data.attendance && data.attendance.length > 0) {
-                tbody.innerHTML = data.attendance.map(record => `
-                    <tr>
-                        <td>${record.student_id}</td>
-                        <td>${record.student_name}</td>
-                        <td>${record.marked_at}</td>
-                        <td>${(record.confidence * 100).toFixed(1)}%</td>
-                    </tr>
-                `).join('');
-            } else {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No records yet</td></tr>';
-            }
-        }
-
-        async function endSession() {
-            if (!confirm('End this session?')) return;
-
-            const response = await fetch('/session/end', {
-                method: 'PATCH'
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                alert(`Session ended\nPresent: ${data.stats.present}/${data.stats.total} (${data.stats.rate}%)`);
-                checkSessionStatus();
-            }
-        }
-
-        function exportCSV() {
-            if (!currentSessionId) return;
-            window.location.href = `/attendance/export?session_id=${currentSessionId}`;
-        }
-
-        function startAutoRefresh() {
-            if (refreshInterval) return;
-            refreshInterval = setInterval(() => {
-                checkSessionStatus();
-            }, 3000); // Refresh every 3 seconds
-        }
-
-        function stopAutoRefresh() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-                refreshInterval = null;
-            }
-        }
-
-        async function showHistory() {
-            const response = await fetch('/session/history');
-            const data = await response.json();
-            
-            const tbody = document.getElementById('historyTable');
-            tbody.innerHTML = data.sessions.map(s => `
-                <tr>
-                    <td>${s.id}</td>
-                    <td>${s.session_name}</td>
-                    <td>${s.started_at}</td>
-                    <td>${s.is_active ? '<span style="color: green;">Active</span>' : '<span style="color: red;">Ended</span>'}</td>
-                    <td>${s.present_count}/${s.total_students}</td>
-                    <td>
-                        ${!s.is_active ? `<button class="btn-secondary" onclick="reopenSession(${s.id})">Reopen</button>` : ''}
-                        <button class="btn-secondary" onclick="exportSessionCSV(${s.id})">Export</button>
-                    </td>
-                </tr>
-            `).join('');
-            
-            document.getElementById('historyCard').classList.remove('hidden');
-        }
-
-        function hideHistory() {
-            document.getElementById('historyCard').classList.add('hidden');
-        }
-
-        async function reopenSession(sessionId) {
-            if (!confirm('Reopen this session?')) return;
-            
-            const response = await fetch(`/session/reopen?session_id=${sessionId}`, {
-                method: 'PATCH'
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                alert('Session reopened!');
-                hideHistory();
-                checkSessionStatus();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        }
-
-        function exportSessionCSV(sessionId) {
-            window.location.href = `/attendance/export?session_id=${sessionId}`;
-        }
-
-        async function markManual() {
-            const studentId = document.getElementById('manualStudentId').value;
-            
-            if (!studentId) {
-                alert('Please enter student ID');
-                return;
-            }
-            
-            const response = await fetch('/attendance/mark-manual', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({student_id: studentId})
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                alert(`${data.student_name} marked present!`);
-                document.getElementById('manualStudentId').value = '';
-                checkSessionStatus();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        }
-
-    </script>
+    // ── INIT ──
+    window.onload = checkSessionStatus;
+</script>
 </body>
 </html>

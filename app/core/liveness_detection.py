@@ -1,12 +1,29 @@
 import cv2
+import os
 import dlib
 import numpy as np
 from scipy.spatial import distance
+from dotenv import load_dotenv
+
+load_dotenv()
+
+USE_MINIVISION = os.getenv("USE_MINIVISION", "False").lower() == "true"
+
+if USE_MINIVISION:
+    from app.core.antispoof_detector import AntiSpoofDetector
+
 
 class LivenessDetector:
     def __init__(self, model_path: str = "models/shape_predictor_68_face_landmarks.dat"):
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(model_path)
+
+        if USE_MINIVISION:
+            self.antispoof = AntiSpoofDetector()
+            print("✅ MiniVision anti-spoof enabled")
+        else:
+            self.antispoof = None
+            print("⚠️  MiniVision anti-spoof disabled (using basic checks only)")
 
         self.LEFT_EYE = list(range(42, 48))
         self.RIGHT_EYE = list(range(36, 42))
@@ -131,4 +148,27 @@ class LivenessDetector:
 
             if result['blink_count'] >= required_blinks:
                 print(f"Blink detected!")
-                return {"success": True}
+
+                if self.antispoof is not None:
+                    print("Running MiniVision anti-spoof check...")
+                    
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    faces = self.detector(gray)
+                    
+                    if len(faces) == 0:
+                        return {"success": False, "reason": "no_face_for_spoof"}
+                    
+                    face = faces[0]
+                    bbox = [face.left(), face.top(), face.right(), face.bottom()]
+                    
+                    spoof = self.antispoof.check(frame, bbox)
+                    
+                    if not spoof["is_real"]:
+                        print(f"Spoof detected! Score: {spoof['score']:.2f}")
+                        return {"success": False, "reason": "spoof", "score": spoof["score"]}
+                    
+                    print(f"Real face confirmed (score: {spoof['score']:.2f})")
+                    return {"success": True, "method": "minivision", "score": spoof["score"]}
+                else:
+                    print("Liveness passed (basic checks only)")
+                    return {"success": True, "method": "basic"}

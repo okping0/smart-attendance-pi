@@ -36,6 +36,7 @@ def start_session(
   engine = AttendanceEngine(db)
   session_id = engine.start_session(data.session_name, total_students=data.total_students,class_name=data.class_name)
 
+  
   return {"success": True, "session_id": session_id}
 
 # ---------------------------------------------------#
@@ -211,10 +212,27 @@ def mark_manual_attendance(
 # ------- session history ------- #
 # ----------------------------- #
 @app.get("/session/history")
-def get_session_history(limit: int = 10, db: Session = Depends(get_db)):
+def get_session_history(limit: int = 50,
+                        status: str = None,
+                        search: str = None,
+                        db: Session = Depends(get_db)
+                        ):
   from app.database.models import Session as SessionModel
 
-  sessions = db.query(SessionModel).order_by(
+  query = db.query(SessionModel)
+
+  if status =="active":
+    query = query.filter(SessionModel.is_active == True)
+  elif status == "ended":
+    query = query.filter(SessionModel.is_active == False)
+
+  if search:
+    query = query.filter(
+      SessionModel.session_name.ilike(f"%{search}%") |
+      SessionModel.class_name.ilike(f"%{search}%")
+    )
+
+  sessions = query.order_by(
     SessionModel.started_at.desc()
   ).limit(limit).all()
 
@@ -293,7 +311,7 @@ def export_attendance(session_id: int, db: Session = Depends(get_db)):
   output = io.StringIO()
   writer = csv.writer(output)
 
-  writer.writerow(['Student ID', 'Name', 'Confidence', 'Status'])
+  writer.writerow(['Student ID', 'Name','TimeStamp', 'Confidence', 'Status'])
 
   for record, student in records:
     writer.writerow([
