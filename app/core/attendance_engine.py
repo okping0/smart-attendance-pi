@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-import pytz
 from typing import Optional, Dict
 from sqlalchemy.orm import Session
 from app.database.models import Student, Session as SessionModel, AttendanceRecord, SystemLog

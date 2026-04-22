@@ -49,12 +49,13 @@ class AttendanceSystem:
       return{"success": False, "stage": "duplicate", "student_name": student_name}
     
     # step-4 check liveness
+    print(f"\n→ Recognized: {student_name} ({confidence:.2%}) — starting liveness check...")
     blink_passed = self.liveness.wait_for_blink(cap, required_blinks=3, timeout_seconds=10)
     cv2.destroyWindow('Liveness Check')
 
     if not blink_passed["success"]:
       reason = blink_passed.get("reason", "unknown")
-      return {"success": False, "stage": "Liveness"}
+      return {"success": False, "stage": "liveness", "reason": reason}
     
     result = self.attendance.mark_attendance(student_id, student_name, confidence)
 
@@ -118,7 +119,13 @@ class AttendanceSystem:
                     elif stage == "duplicate":
                         print(f" {result['student_name']} already marked!")
                     elif stage == "liveness":
-                        print(f"Liveness check failed - no blink detected")
+                        reason = result.get("reason", "unknown")
+                        if reason == "spoof":
+                          print(f"✗ Spoof attack blocked (score: {result.get('score', 0):.2f})")
+                        elif reason == "timeout":
+                          print(f"Liveness check failed - no blink detected")
+                        else:
+                           print(f"Liveness failed ({reason})")
                     elif stage == "database":
                         print(f"Database error: {result['message']}")
                     print()

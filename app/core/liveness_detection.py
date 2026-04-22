@@ -20,7 +20,7 @@ class LivenessDetector:
 
         if USE_MINIVISION:
             self.antispoof = AntiSpoofDetector()
-            print("✅ MiniVision anti-spoof enabled")
+            print("MiniVision anti-spoof enabled")
         else:
             self.antispoof = None
             print("⚠️  MiniVision anti-spoof disabled (using basic checks only)")
@@ -117,8 +117,39 @@ class LivenessDetector:
 
         collected_frames = []
 
-        print(f"Waiting for {required_blinks} blink(s)...")
+        
 
+        # --- SPOOF CHECK FIRST (on a clean still frame) ---
+        if self.antispoof is not None:
+                print("Running MiniVision anti-spoof check...")
+                ret, clean_frame = cap.read()
+                if not ret:
+                    return {"success": False, "reason": " not ret"}
+                gray = cv2.cvtColor(clean_frame, cv2.COLOR_BGR2GRAY)
+                faces = self.detector(gray)
+
+                if len(faces) == 0:
+                    return {"success": False, "reason": "no_face_for_spoof"}
+
+                face = faces[0]
+                bbox = [face.left(), face.top(), face.right(), face.bottom()]
+                spoof = self.antispoof.check(clean_frame, bbox)
+
+                print(f"[SPOOF] real_prob={spoof['real_prob']} | per_model={spoof['scores_per_model']}")
+
+                if not spoof["is_real"]:
+                    print(f"Spoof detected! real_prob: {spoof['real_prob']:.2f}")
+                    rejection_frame = clean_frame.copy()
+                    cv2.putText(rejection_frame, "SPOOF DETECTED", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
+                    cv2.putText(rejection_frame, f"Score: {spoof['real_prob']:.2f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    cv2.putText(rejection_frame, "Use your real face!", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    cv2.imshow('Liveness Check', rejection_frame)
+                    cv2.waitKey(2000)  # show for 2 seconds
+                    return {"success": False, "reason": "spoof", "real_prob": spoof["real_prob"]}
+
+                print(f"Real face confirmed ({spoof['real_prob']:.2f}) — proceeding to blink check")
+
+        print(f"Waiting for {required_blinks} blink(s)...")
         while True:
             elapsed = time.time() - start_time
             if elapsed > timeout_seconds:
@@ -149,26 +180,6 @@ class LivenessDetector:
             if result['blink_count'] >= required_blinks:
                 print(f"Blink detected!")
 
-                if self.antispoof is not None:
-                    print("Running MiniVision anti-spoof check...")
-                    
-                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    faces = self.detector(gray)
-                    
-                    if len(faces) == 0:
-                        return {"success": False, "reason": "no_face_for_spoof"}
-                    
-                    face = faces[0]
-                    bbox = [face.left(), face.top(), face.right(), face.bottom()]
-                    
-                    spoof = self.antispoof.check(frame, bbox)
-                    
-                    if not spoof["is_real"]:
-                        print(f"Spoof detected! Score: {spoof['score']:.2f}")
-                        return {"success": False, "reason": "spoof", "score": spoof["score"]}
-                    
-                    print(f"Real face confirmed (score: {spoof['score']:.2f})")
-                    return {"success": True, "method": "minivision", "score": spoof["score"]}
-                else:
-                    print("Liveness passed (basic checks only)")
-                    return {"success": True, "method": "basic"}
+                
+                print("Liveness passed (basic checks only)")
+                return {"success": True, "method": "basic"}

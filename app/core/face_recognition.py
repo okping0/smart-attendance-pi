@@ -57,7 +57,7 @@ class FaceRecognitionEngine:
     face_embedding = self.detect_face(image)
 
     if face_embedding is None:
-      return None, 0.0
+      return None,None, 0.0
     
     best_match_id = None
     best_match_name = None
