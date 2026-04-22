@@ -16,6 +16,20 @@ class Student(Base):
 
   attendance_records = relationship("AttendanceRecord", back_populates="student")
 
+class Teacher(Base):
+    __tablename__ = "teachers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    teacher_id = Column(String(20), unique=True, nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(100), unique=True)
+    phone = Column(String(20))
+    face_embeddings = Column(JSON, nullable=False)
+    department = Column(String(100))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime, nullable=True)
+
 class Session(Base):
   __tablename__ = "sessions"
 

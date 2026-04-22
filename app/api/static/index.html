@@ -30,6 +30,101 @@
             min-height: 100vh;
         }
 
+        /* ── LOGIN PAGE ── */
+        #loginPage {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg);
+        }
+
+        .login-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .login-brand {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .login-brand .dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        .login-subtitle {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 32px;
+        }
+
+        #loginVideo {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            background: var(--surface2);
+            display: block;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            background: var(--accent);
+            color: #0a0d14;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .login-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .login-message {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            display: none;
+        }
+        .login-message.success {
+            display: block;
+            background: var(--success-bg);
+            color: var(--accent);
+            border: 1px solid rgba(79,255,176,0.2);
+        }
+        .login-message.error {
+            display: block;
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(255,79,106,0.2);
+        }
+
+        /* ── DASHBOARD (hidden until login) ── */
+        #dashboardPage { display: none; }
+
         /* ── NAVBAR ── */
         nav {
             display: flex;
@@ -78,6 +173,12 @@
             font-size: 14px;
             color: var(--muted);
             letter-spacing: 1px;
+        }
+
+        .nav-teacher {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 500;
         }
 
         .session-pill {
@@ -437,150 +538,179 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
-<nav>
-    <div class="nav-brand">
-        <div class="dot"></div>
-        SmartAttend
-    </div>
-    <div class="nav-right">
-        <span id="liveClock">--:--:--</span>
-        <span id="navPill" class="session-pill pill-inactive">● NO SESSION</span>
-    </div>
-</nav>
+<!-- ══════════════════════════════════════════ -->
+<!-- LOGIN PAGE                                 -->
+<!-- ══════════════════════════════════════════ -->
+<div id="loginPage">
+    <div class="login-box">
+        <div class="login-brand">
+            <div class="dot"></div>
+            SmartAttend
+        </div>
+        <p class="login-subtitle">Teacher Login — Face Recognition</p>
 
-<!-- MAIN -->
-<div class="container">
-    <div class="page-title">Attendance <span>Dashboard</span></div>
+        <video id="loginVideo" autoplay playsinline></video>
 
-    <!-- STATS -->
-    <div id="statsRow" class="stats-row hidden">
-        <div class="stat-card green">
-            <div class="stat-icon">✓</div>
-            <div class="stat-number" id="presentCount">0</div>
-            <div class="stat-label">Present</div>
-        </div>
-        <div class="stat-card blue">
-            <div class="stat-icon">◈</div>
-            <div class="stat-number" id="totalStudentsDisplay">0</div>
-            <div class="stat-label">Total Students</div>
-        </div>
-        <div class="stat-card orange">
-            <div class="stat-icon">◎</div>
-            <div class="stat-number" id="attendanceRate">0%</div>
-            <div class="stat-label">Attendance Rate</div>
-            <div class="progress-wrap">
-                <div class="progress-bar" id="progressBar" style="width:0%"></div>
-            </div>
-        </div>
-    </div>
+        <button class="login-btn" id="loginBtn" onclick="loginWithFace()">Login with Face Recognition</button>
 
-    <!-- SESSION CONTROL -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Session Control</div>
-        </div>
-        <div class="session-bar">
-            <span class="session-name-display" id="statusText">No active session</span>
-            <div class="btn-group">
-                <button class="btn-primary" onclick="openStartModal()">+ New Session</button>
-                <button class="btn-danger hidden" id="endBtn" onclick="endSession()">End Session</button>
-                <button class="btn-secondary hidden" id="exportBtn" onclick="exportCSV()">↓ Export CSV</button>
-                <button class="btn-secondary" onclick="showHistory()">History</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ATTENDANCE LIST -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Live Attendance</div>
-            <div class="search-wrap">
-                <span class="search-icon">⌕</span>
-                <input type="text" id="searchInput" placeholder="Search student..." oninput="filterTable()">
-            </div>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Student ID</th>
-                        <th>Name</th>
-                        <th>Time</th>
-                        <th>Confidence</th>
-                    </tr>
-                </thead>
-                <tbody id="attendanceTable">
-                    <tr><td colspan="4">
-                        <div class="empty-state">
-                            <div class="icon">◌</div>
-                            No records yet
-                        </div>
-                    </td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- SESSION HISTORY -->
-    <div class="card hidden" id="historyCard">
-        <div class="card-header">
-            <div class="card-title">Session History</div>
-            <button class="btn-secondary btn-sm" onclick="hideHistory()">✕ Close</button>
-        </div>
-
-        <!-- Filters -->
-        <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
-            <div class="search-wrap" style="flex:1; min-width:180px; max-width:100%;">
-                <span class="search-icon">⌕</span>
-                <input type="text" id="historySearch" placeholder="Search session or class..." oninput="applyHistoryFilters()">
-            </div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn-secondary btn-sm active-filter" id="filter-all"    onclick="setHistoryFilter('all')">All</button>
-                <button class="btn-secondary btn-sm"               id="filter-active" onclick="setHistoryFilter('active')">Live</button>
-                <button class="btn-secondary btn-sm"               id="filter-ended"  onclick="setHistoryFilter('ended')">Ended</button>
-            </div>
-            <select id="historyLimit" class="history-select" onchange="applyHistoryFilters()">
-                <option value="50">Last 50</option>
-                <option value="100">Last 100</option>
-                <option value="999">All</option>
-            </select>
-        </div>
-
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Session Name</th>
-                        <th>Class</th>
-                        <th>Started</th>
-                        <th>Ended</th>
-                        <th>Status</th>
-                        <th>Present / Total</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="historyTable"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- MANUAL ATTENDANCE -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Manual Mark</div>
-        </div>
-        <p style="color:var(--muted); font-size:13px; margin-bottom:16px;">Use when face recognition fails</p>
-        <div style="display:flex; gap:12px; align-items:flex-end;">
-            <div class="form-group" style="flex:1; margin-bottom:0;">
-                <label>Student ID</label>
-                <input type="text" id="manualStudentId" placeholder="e.g. 0901EO231039">
-            </div>
-            <button class="btn-primary" onclick="markManual()" style="padding:12px 24px;">Mark Present</button>
-        </div>
+        <div id="loginMessage" class="login-message"></div>
     </div>
 </div>
+
+
+<!-- ══════════════════════════════════════════ -->
+<!-- DASHBOARD PAGE (hidden until login)        -->
+<!-- ══════════════════════════════════════════ -->
+<div id="dashboardPage">
+
+    <!-- NAVBAR -->
+    <nav>
+        <div class="nav-brand">
+            <div class="dot"></div>
+            SmartAttend
+        </div>
+        <div class="nav-right">
+            <span id="liveClock">--:--:--</span>
+            <span id="navTeacher" class="nav-teacher"></span>
+            <span id="navPill" class="session-pill pill-inactive">● NO SESSION</span>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <div class="container">
+        <div class="page-title">Attendance <span>Dashboard</span></div>
+
+        <!-- STATS -->
+        <div id="statsRow" class="stats-row hidden">
+            <div class="stat-card green">
+                <div class="stat-icon">✓</div>
+                <div class="stat-number" id="presentCount">0</div>
+                <div class="stat-label">Present</div>
+            </div>
+            <div class="stat-card blue">
+                <div class="stat-icon">◈</div>
+                <div class="stat-number" id="totalStudentsDisplay">0</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-icon">◎</div>
+                <div class="stat-number" id="attendanceRate">0%</div>
+                <div class="stat-label">Attendance Rate</div>
+                <div class="progress-wrap">
+                    <div class="progress-bar" id="progressBar" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SESSION CONTROL -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Session Control</div>
+            </div>
+            <div class="session-bar">
+                <span class="session-name-display" id="statusText">No active session</span>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="openStartModal()">+ New Session</button>
+                    <button class="btn-danger hidden" id="endBtn" onclick="endSession()">End Session</button>
+                    <button class="btn-secondary hidden" id="exportBtn" onclick="exportCSV()">↓ Export CSV</button>
+                    <button class="btn-secondary" onclick="showHistory()">History</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ATTENDANCE LIST -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Live Attendance</div>
+                <div class="search-wrap">
+                    <span class="search-icon">⌕</span>
+                    <input type="text" id="searchInput" placeholder="Search student..." oninput="filterTable()">
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Time</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTable">
+                        <tr><td colspan="4">
+                            <div class="empty-state">
+                                <div class="icon">◌</div>
+                                No records yet
+                            </div>
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SESSION HISTORY -->
+        <div class="card hidden" id="historyCard">
+            <div class="card-header">
+                <div class="card-title">Session History</div>
+                <button class="btn-secondary btn-sm" onclick="hideHistory()">✕ Close</button>
+            </div>
+
+            <!-- Filters -->
+            <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
+                <div class="search-wrap" style="flex:1; min-width:180px; max-width:100%;">
+                    <span class="search-icon">⌕</span>
+                    <input type="text" id="historySearch" placeholder="Search session or class..." oninput="applyHistoryFilters()">
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-secondary btn-sm active-filter" id="filter-all"    onclick="setHistoryFilter('all')">All</button>
+                    <button class="btn-secondary btn-sm"               id="filter-active" onclick="setHistoryFilter('active')">Live</button>
+                    <button class="btn-secondary btn-sm"               id="filter-ended"  onclick="setHistoryFilter('ended')">Ended</button>
+                </div>
+                <select id="historyLimit" class="history-select" onchange="applyHistoryFilters()">
+                    <option value="50">Last 50</option>
+                    <option value="100">Last 100</option>
+                    <option value="999">All</option>
+                </select>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Session Name</th>
+                            <th>Class</th>
+                            <th>Started</th>
+                            <th>Ended</th>
+                            <th>Status</th>
+                            <th>Present / Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MANUAL ATTENDANCE -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Manual Mark</div>
+            </div>
+            <p style="color:var(--muted); font-size:13px; margin-bottom:16px;">Use when face recognition fails</p>
+            <div style="display:flex; gap:12px; align-items:flex-end;">
+                <div class="form-group" style="flex:1; margin-bottom:0;">
+                    <label>Student ID</label>
+                    <input type="text" id="manualStudentId" placeholder="e.g. 0901EO231039">
+                </div>
+                <button class="btn-primary" onclick="markManual()" style="padding:12px 24px;">Mark Present</button>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end #dashboardPage -->
+
 
 <!-- START SESSION MODAL -->
 <div class="modal-overlay" id="startModal">
@@ -609,6 +739,75 @@
 <div id="toast-container"></div>
 
 <script>
+    // ══════════════════════════════════════════
+    // LOGIN
+    // ══════════════════════════════════════════
+
+    let cameraStream = null;
+
+    async function startCamera() {
+        try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('loginVideo').srcObject = cameraStream;
+        } catch (err) {
+            showLoginMessage('Camera access denied', 'error');
+        }
+    }
+
+    async function loginWithFace() {
+        const video  = document.getElementById('loginVideo');
+        const btn    = document.getElementById('loginBtn');
+        const canvas = document.createElement('canvas');
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+
+        btn.disabled = true;
+        showLoginMessage('Authenticating…', 'success');
+
+        canvas.toBlob(async (blob) => {
+            try {
+                const formData = new FormData();
+                formData.append('frame', blob, 'frame.jpg');
+
+                const res  = await fetch('/auth/login', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    localStorage.setItem('token', data.access_token);
+                    showLoginMessage(`Welcome, ${data.teacher_name}!`, 'success');
+
+                    // stop camera then show dashboard
+                    if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+
+                    setTimeout(() => {
+                        document.getElementById('loginPage').style.display      = 'none';
+                        document.getElementById('dashboardPage').style.display  = 'block';
+                        document.getElementById('navTeacher').textContent       = data.teacher_name;
+                        checkSessionStatus();
+                    }, 800);
+                } else {
+                    showLoginMessage(data.detail || 'Face not recognised', 'error');
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                showLoginMessage('Login failed: ' + err.message, 'error');
+                btn.disabled = false;
+            }
+        }, 'image/jpeg', 0.92);
+    }
+
+    function showLoginMessage(msg, type) {
+        const el = document.getElementById('loginMessage');
+        el.textContent  = msg;
+        el.className    = 'login-message ' + type;
+    }
+
+
+    // ══════════════════════════════════════════
+    // DASHBOARD  (unchanged from original)
+    // ══════════════════════════════════════════
+
     let currentSessionId = null;
     let refreshInterval  = null;
     let attendanceData   = [];
@@ -872,7 +1071,7 @@
     }
 
     // ── INIT ──
-    window.onload = checkSessionStatus;
+    window.onload = startCamera;
 </script>
 </body>
 </html>

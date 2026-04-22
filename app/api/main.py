@@ -1,15 +1,20 @@
-from fastapi import FastAPI,Depends
+from fastapi import FastAPI,Depends, Response, UploadFile, File
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.api.schemas import SessionStartRequest, StudentEnrollRequest, ManualAttendanceRequest
+import base64
+import numpy as np
+import cv2
 import csv, io, os
+
 
 app = FastAPI(title="Attendance System API")
 
 static_path = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_path), name="static")
+
 
 @app.get("/dashboard")
 def dashboard():
@@ -331,3 +336,65 @@ def export_attendance(session_id: int, db: Session = Depends(get_db)):
     media_type="text/csv",
     headers={"Content-Disposition": f"attachment; filename={filename}"}
   )
+
+# ---------------------------------------------------#
+
+
+
+@app.post("/auth/login")
+async def teacher_login(frame: UploadFile = File(...)):
+    from app.core.teacher_auth_engine import TeacherAuth
+    teacher_auth = TeacherAuth()
+    teacher_auth.load_teacher_embeddings()
+    """
+    Login teacher via face recognition
+    Expects base64 encoded image
+    """
+    try:
+        # Decode base64 image
+        img_data = await frame.read()
+        nparr = np.frombuffer(img_data, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # Authenticate
+        teacher_id, name, confidence = teacher_auth.authenticate(frame)
+        
+        if teacher_id:
+            return {
+                "success": True,
+                "teacher_id": teacher_id,
+                "teacher_name": name,
+                "confidence": confidence,
+                "message": f"Welcome, {name}!"
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Authentication failed",
+                "confidence": confidence
+            }
+    
+    except Exception as e:
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+@app.get("/auth/teachers")
+def list_teachers(db: Session = Depends(get_db)):
+    """List all enrolled teachers"""
+    from app.database.models import Teacher
+    
+    teachers = db.query(Teacher).all()
+    
+    return {
+        "success": True,
+        "count": len(teachers),
+        "teachers": [
+            {
+                "teacher_id": t.teacher_id,
+                "name": t.name,
+                "email": t.email,
+                "department": t.department,
+                "last_login": t.last_login.strftime("%Y-%m-%d %H:%M") if t.last_login else "Never"
+            }
+            for t in teachers
+        ]
+    }
